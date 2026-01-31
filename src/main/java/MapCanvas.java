@@ -369,7 +369,7 @@ public class MapCanvas extends JComponent {
 							break;
 						case 26:
 							// Nothing
-							iblock = mygame.iparking;
+							iblock = mygame.ickshall;
 							break;
 						case 27:
 							// Hospital

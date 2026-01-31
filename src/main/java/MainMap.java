@@ -191,7 +191,7 @@ public class MainMap extends JFrame {
 		ini_map.type[0] = 1;
 
 		// 25: Jail
-		// 26: Nothing/Parking Lot
+		// 26: Nothing/CKS Memorial Hall
 		// 27: Hospital
 		Integer[] array = {25, 26, 27};
 		List<Integer> list = new ArrayList<>(Arrays.asList(array));
@@ -219,7 +219,7 @@ public class MainMap extends JFrame {
 					ini_map.jailId = i;
 					break;
 				case 26:
-					ini_map.parkingId = i;
+					ini_map.ckshallId = i;
 					break;
 				case 27:
 					ini_map.hospitalId = i;

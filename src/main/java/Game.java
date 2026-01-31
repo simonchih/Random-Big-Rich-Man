@@ -51,7 +51,7 @@ public class Game {
 
 	public ImageIcon iarrow = new ImageIcon(Game.class.getResource("/Image/gtkmonop-go-0.png"));
 	public ImageIcon ijail = new ImageIcon(Game.class.getResource("/Image/jail.jpg"));
-	public ImageIcon iparking = new ImageIcon(Game.class.getResource("/Image/Parking.jpg"));
+	public ImageIcon ickshall = new ImageIcon(Game.class.getResource("/Image/CKS_Memorial_Hall.jpg"));
 	public ImageIcon ihospital = new ImageIcon(Game.class.getResource("/Image/Hospital.jpg"));
 
 	public ImageIcon ihouse = new ImageIcon(Game.class.getResource("/Image/house.png"));
@@ -216,8 +216,7 @@ public class Game {
 	public static void main(final String[] args) {
 		final Game game = new Game();
 		final JFrame frame = new JFrame("Random Big Rich Man");
-		frame.setSize(300, 300);
-		frame.setVisible(true);
+		frame.setSize(300, 300); // won't show New Game button in macOS 15.6
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		final JPanel panel = new JPanel();
@@ -234,5 +233,6 @@ public class Game {
 		});
 		btnANewGame.setBounds(10, 112, 264, 23);
 		panel.add(btnANewGame);
+		frame.setVisible(true);
 	}
 }

@@ -201,7 +201,7 @@ public class GameLoop implements Runnable {
 									mygame.deal(cash, mygame.turn, "Income Tax: ");
 								}
 							} else if (7 == n) {
-								go_parking();
+								go_ckshall();
 								continue;
 							} else if (8 == n) {
 								go_start();
@@ -343,12 +343,12 @@ public class GameLoop implements Runnable {
 		mygame.p_id[turn_id] = (gameMap.hospitalId - 1) % gameMap.size;
 		mygame.deal(-1 * mygame.hospital_fee, turn_id, "Hospital Fee: ");
 	}
-	public void go_parking() {
+	public void go_ckshall() {
 		int turn_id = mygame.turn;
-		mygame.p_status[turn_id] = "Go to parking lot.";
+		mygame.p_status[turn_id] = "Go to CKS Memorial Hall.";
 		mygame.move_start = true;
-		mygame.p_id[turn_id] = (gameMap.parkingId - 1) % gameMap.size;
-		mygame.p_dest_id[turn_id] = gameMap.parkingId;
+		mygame.p_id[turn_id] = (gameMap.ckshallId - 1) % gameMap.size;
+		mygame.p_dest_id[turn_id] = gameMap.ckshallId;
 	}
 	public void go_start() {
 		int turn_id = mygame.turn;

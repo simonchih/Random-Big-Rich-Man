@@ -47,7 +47,7 @@ public class GameMap {
 
 	int hospitalId;
 	int jailId;
-	int parkingId;
+	int ckshallId;
 	//int startId = 0;
 
 	public static int colorIndex(Color c) {
