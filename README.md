@@ -24,7 +24,7 @@ Image or Sound from these projects or the Internet:
 	a. give player money
 	b. pay money
 	c. forward steps
-	d. go to start point or parking lot
+	d. go to start point or CKS Memorial Hall
 	e. stop once
 	f. ...
 5. Go to hospital will pay $1000
