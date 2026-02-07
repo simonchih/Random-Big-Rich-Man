@@ -38,6 +38,8 @@ import java.util.Set;
 public class PlayerSettings {
 
 	private static final int NUM_PLAYERS = 4;
+	// Remove one icon that duplicates Player1's default color family.
+	private static final int DUPLICATE_ICON_SOURCE_INDEX = 6;
 
 	private final int playerNum;
 	private final int playerIdx;
@@ -100,6 +102,9 @@ public class PlayerSettings {
 
 		final List<IconChoice> filteredChoices = new ArrayList<>();
 		for (int i = 0; i < playerIcons.length; i++) {
+			if (i == DUPLICATE_ICON_SOURCE_INDEX) {
+				continue;
+			}
 			if (!usedIconIndices.contains(i)) {
 				filteredChoices.add(new IconChoice(i, playerIcons[i]));
 			}
