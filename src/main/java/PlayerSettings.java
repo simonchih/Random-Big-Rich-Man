@@ -83,7 +83,7 @@ public class PlayerSettings {
 			game.image4,
 			game.image5,
 			game.image6,
-			game.image7,
+			//game.image7,
 			game.image8
 		};
 		final ImageIcon[] PLAYER_FIGURES = new ImageIcon[] {
@@ -93,7 +93,7 @@ public class PlayerSettings {
 			game.imagep4,
 			game.imagep5,
 			game.imagep6,
-			game.imagep7,
+			//game.imagep7,
 			game.imagep8
 		};
 		final Integer[] INDICES = new Integer[PLAYER_ICONS.length];
