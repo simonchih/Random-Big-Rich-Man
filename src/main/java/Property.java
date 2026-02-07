@@ -14,137 +14,201 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import java.awt.Color;
+import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.Scene;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
+
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTable;
-import javax.swing.table.TableModel;
 
 public class Property {
 
+	private static final class PropertyRow {
+		private final Color color;
+		private final String name;
+		private final long value;
+		private final int houseLevel;
+		private final boolean doubled;
+		private final long toll;
+
+		private PropertyRow(
+			final Color color,
+			final String name,
+			final long value,
+			final int houseLevel,
+			final boolean doubled,
+			final long toll) {
+			this.color = color;
+			this.name = name;
+			this.value = value;
+			this.houseLevel = houseLevel;
+			this.doubled = doubled;
+			this.toll = toll;
+		}
+
+		public Color getColor() {
+			return color;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public long getValue() {
+			return value;
+		}
+
+		public int getHouseLevel() {
+			return houseLevel;
+		}
+
+		public boolean isDoubled() {
+			return doubled;
+		}
+
+		public long getToll() {
+			return toll;
+		}
+	}
+
 	private final Game game;
-	private final JFrame frame;
-	private final JTabbedPane tabbedPane;
-	private JTable table;
-	private JTable table_1;
-	private JTable table_2;
-	private JTable table_3;
+	private final Stage stage;
+	private final TabPane tabbedPane;
 
 	Property(final Game game) {
-		this.tabbedPane = new JTabbedPane();
-		this.frame = new JFrame("Property");
 		this.game = game;
-	}
-	private void AddElementToTable(final List<List<?>> datat, final GameMap gameMap, final int i) {
-		long fee;
-		int doub;
-		boolean db;
-		final List<Object> data = new ArrayList<>();
-
-		doub = game.double_fee(gameMap, i);
-
-		db = (2 == doub);
-
-		fee = game.toll(gameMap, doub, i);
-
-		data.add(gameMap.color[i]);
-		data.add(gameMap.name[i]);
-		data.add(gameMap.value[i]);
-		data.add(gameMap.level[i]);
-		data.add(db);
-		data.add(fee);
-		datat.add(data);
-	}
-	private void cTab(JTabbedPane tabp) {
-
-		frame.getContentPane().removeAll();
-		frame.setSize(650, 300);
-		frame.getContentPane().add(tabp);
-		frame.setVisible(true);
+		this.tabbedPane = new TabPane();
+		this.stage = new Stage();
+		this.stage.setTitle("Property");
+		this.stage.setScene(new Scene(tabbedPane, 650, 300));
 	}
 
-    public boolean isVisible() {
-		return frame.isVisible();
+	private PropertyRow toRow(final GameMap gameMap, final int i) {
+		final int doub = game.double_fee(gameMap, i);
+		final boolean db = (doub == 2);
+		final long fee = game.toll(gameMap, doub, i);
+		return new PropertyRow(gameMap.color[i], gameMap.name[i], gameMap.value[i], gameMap.level[i], db, fee);
 	}
 
-	/**
-	 * @param gameMap
-	 * @wbp.parser.entryPoint
-	 */
+	public boolean isVisible() {
+		return stage.isShowing();
+	}
+
 	protected void show(final GameMap gameMap) {
-
-		int t_index = 0;
-		String Property = "'s Property";
-
-		if (frame.isVisible()) {
-			t_index = tabbedPane.getSelectedIndex();
+		if (Platform.isFxApplicationThread()) {
+			showInternal(gameMap);
+		} else {
+			Platform.runLater(() -> showInternal(gameMap));
 		}
-		final List<String> Column_Name = new ArrayList<>();
-		Column_Name.add("Color");
-		Column_Name.add("Name");
-		Column_Name.add("Value");
-		Column_Name.add("House Level");
-		Column_Name.add("Double");
-		Column_Name.add("Toll");
+	}
 
-		final List<List<?>> data1 = new ArrayList<>();
-		final List<List<?>> data2 = new ArrayList<>();
-		final List<List<?>> data3 = new ArrayList<>();
-		final List<List<?>> data4 = new ArrayList<>();
+	private void showInternal(final GameMap gameMap) {
+		int selectedIndex = 0;
+		if (stage.isShowing() && !tabbedPane.getTabs().isEmpty()) {
+			selectedIndex = tabbedPane.getSelectionModel().getSelectedIndex();
+		}
+
+		final List<PropertyRow> data1 = new ArrayList<>();
+		final List<PropertyRow> data2 = new ArrayList<>();
+		final List<PropertyRow> data3 = new ArrayList<>();
+		final List<PropertyRow> data4 = new ArrayList<>();
 
 		for (int i = 0; i < gameMap.size; i++) {
-			final int o = gameMap.owner[i];
-			switch(o) {
+			final int owner = gameMap.owner[i];
+			switch (owner) {
 				case 1:
-					AddElementToTable(data1, gameMap, i);
+					data1.add(toRow(gameMap, i));
 					break;
 				case 2:
-					AddElementToTable(data2, gameMap, i);
+					data2.add(toRow(gameMap, i));
 					break;
 				case 3:
-					AddElementToTable(data3, gameMap, i);
+					data3.add(toRow(gameMap, i));
 					break;
 				case 4:
-					AddElementToTable(data4, gameMap, i);
+					data4.add(toRow(gameMap, i));
 					break;
-				//default:
-					//System.out.println(o);
+				default:
+					break;
 			}
 		}
 
-		frame.setVisible(false);
-		tabbedPane.removeAll();
+		tabbedPane.getTabs().clear();
+		tabbedPane.getTabs().add(new Tab(game.p_name[0] + "'s Property", createTable(data1)));
+		tabbedPane.getTabs().add(new Tab(game.p_name[1] + "'s Property", createTable(data2)));
+		tabbedPane.getTabs().add(new Tab(game.p_name[2] + "'s Property", createTable(data3)));
+		tabbedPane.getTabs().add(new Tab(game.p_name[3] + "'s Property", createTable(data4)));
 
-		final TableModel dataModel1 = new ListBasedDataModel(data1, Column_Name);
-		final TableModel dataModel2 = new ListBasedDataModel(data2, Column_Name);
-		final TableModel dataModel3 = new ListBasedDataModel(data3, Column_Name);
-		final TableModel dataModel4 = new ListBasedDataModel(data4, Column_Name);
+		for (final Tab tab : tabbedPane.getTabs()) {
+			tab.setClosable(false);
+		}
 
-		table = new JTable(dataModel1);
-		table.setDefaultRenderer(Color.class, new ColorRenderer(true));
-		table.setEnabled(false);
-		tabbedPane.addTab(game.p_name[0] + Property, null, new JScrollPane(table), null);
+		if (!tabbedPane.getTabs().isEmpty()) {
+			selectedIndex = Math.max(0, Math.min(selectedIndex, tabbedPane.getTabs().size() - 1));
+			tabbedPane.getSelectionModel().select(selectedIndex);
+		}
 
-		table_1 = new JTable(dataModel2);
-		table_1.setDefaultRenderer(Color.class, new ColorRenderer(true));
-		table_1.setEnabled(false);
-		tabbedPane.addTab(game.p_name[1] + Property, null, new JScrollPane(table_1), null);
+		stage.show();
+		stage.toFront();
+	}
 
-		table_2 = new JTable(dataModel3);
-		table_2.setDefaultRenderer(Color.class, new ColorRenderer(true));
-		table_2.setEnabled(false);
-		tabbedPane.addTab(game.p_name[2] + Property, null, new JScrollPane(table_2), null);
+	private TableView<PropertyRow> createTable(final List<PropertyRow> rows) {
+		final ObservableList<PropertyRow> data = FXCollections.observableArrayList(rows);
+		final TableView<PropertyRow> table = new TableView<>(data);
+		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+		table.setEditable(false);
+		table.setFocusTraversable(false);
 
-		table_3 = new JTable(dataModel4);
-		table_3.setDefaultRenderer(Color.class, new ColorRenderer(true));
-		table_3.setEnabled(false);
-		tabbedPane.addTab(game.p_name[3] + Property, null, new JScrollPane(table_3), null);
+		final TableColumn<PropertyRow, Color> colorCol = new TableColumn<>("Color");
+		colorCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getColor()));
+		colorCol.setCellFactory(col -> new TableCell<PropertyRow, Color>() {
+			private final Rectangle rect = new Rectangle(24, 14);
 
-		tabbedPane.setSelectedIndex(t_index);
+			@Override
+			protected void updateItem(final Color item, final boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setGraphic(null);
+				} else {
+					rect.setFill(item);
+					rect.setStroke(Color.BLACK);
+					setGraphic(rect);
+				}
+			}
+		});
 
-		cTab(tabbedPane);
+		final TableColumn<PropertyRow, String> nameCol = new TableColumn<>("Name");
+		nameCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getName()));
+
+		final TableColumn<PropertyRow, Long> valueCol = new TableColumn<>("Value");
+		valueCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getValue()));
+
+		final TableColumn<PropertyRow, Integer> levelCol = new TableColumn<>("House Level");
+		levelCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getHouseLevel()));
+
+		final TableColumn<PropertyRow, Boolean> doubledCol = new TableColumn<>("Double");
+		doubledCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().isDoubled()));
+
+		final TableColumn<PropertyRow, Long> tollCol = new TableColumn<>("Toll");
+		tollCol.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getToll()));
+
+		table.getColumns().add(colorCol);
+		table.getColumns().add(nameCol);
+		table.getColumns().add(valueCol);
+		table.getColumns().add(levelCol);
+		table.getColumns().add(doubledCol);
+		table.getColumns().add(tollCol);
+
+		return table;
 	}
 }

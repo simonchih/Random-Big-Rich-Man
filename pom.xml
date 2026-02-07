@@ -7,6 +7,8 @@
 		<project.build.resourceEncoding>${project.build.encoding}</project.build.resourceEncoding>
 
 		<project.mainClass>Game</project.mainClass>
+		<maven.compiler.release>17</maven.compiler.release>
+		<javafx.version>21.0.7</javafx.version>
 	</properties>
 
 	<groupId>random-big-rich-man</groupId>
@@ -14,10 +16,6 @@
 	<version>1.0.0-SNAPSHOT</version>
 
 	<packaging>jar</packaging>
-
-	<prerequisites>
-		<maven>2.2.1</maven>
-	</prerequisites>
 
 	<name>Random Big Rich Man</name>
 	<description>
@@ -209,16 +207,15 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.2</version>
+				<version>3.11.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<release>${maven.compiler.release}</release>
 					<encoding>${project.build.sourceEncoding}</encoding>
 					<showDeprecation>true</showDeprecation>
 					<showWarnings>true</showWarnings>
-					<compilerArguments>
-						<Xlint:unchecked/>
-					</compilerArguments>
+					<compilerArgs>
+						<arg>-Xlint:unchecked</arg>
+					</compilerArgs>
 				</configuration>
 			</plugin>
 
@@ -276,6 +273,19 @@
 					<mainClass>${project.mainClass}</mainClass>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<groupId>org.openjfx</groupId>
+				<artifactId>javafx-maven-plugin</artifactId>
+				<version>0.0.8</version>
+				<configuration>
+					<mainClass>${project.mainClass}</mainClass>
+					<options>
+						<option>--enable-native-access=javafx.graphics</option>
+						<option>--sun-misc-unsafe-memory-access=allow</option>
+					</options>
+				</configuration>
+			</plugin>
 			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -314,6 +324,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.7</version>
@@ -347,4 +362,3 @@
 	</profiles>
 
 </project>
-

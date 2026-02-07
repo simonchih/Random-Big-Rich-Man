@@ -14,21 +14,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import java.awt.Color;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.lang.reflect.Array;
+import javafx.collections.FXCollections;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.stage.Stage;
+
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JSpinner;
-import javax.swing.JTextField;
 
 public class PlayerSettings {
 
@@ -37,46 +42,37 @@ public class PlayerSettings {
 	private final int playerNum;
 	private final int playerIdx;
 
-	public PlayerSettings(final int playerIdx) {
+	private static final class IconChoice {
+		private final int sourceIndex;
+		private final Image icon;
 
+		private IconChoice(final int sourceIndex, final Image icon) {
+			this.sourceIndex = sourceIndex;
+			this.icon = icon;
+		}
+	}
+
+	public PlayerSettings(final int playerIdx) {
 		this.playerIdx = playerIdx;
 		this.playerNum = playerIdx + 1;
 	}
 
-	private static <AVT> AVT[] removeIndices(final AVT[] orig, final Set<Integer> indices) {
-
-		final AVT[] smaller = (AVT[]) Array.newInstance(orig.getClass().getComponentType(), orig.length - indices.size());
-		int iSmaller = 0;
-		for (int i = 0; i < orig.length; i++) {
-			if (!indices.contains(i)) {
-				smaller[iSmaller++] = orig[i];
-			}
-		}
-		return smaller;
-	}
-
-	/**
-	 * @param f
-	 * @param game
-	 * @wbp.parser.entryPoint
-	 */
-	public void show(final JFrame f, final Game game) {
-
+	public void show(final Stage previousStage, final Game game) {
 		final boolean firstPlayer = (playerIdx == 0);
 		final boolean humanPlayer = firstPlayer;
 		final boolean lastPlayer = (playerIdx == (NUM_PLAYERS - 1));
 
-		final PlayerSettings gs3;
+		final PlayerSettings nextSettings;
 		final MainMap mmap;
 		if (lastPlayer) {
-			gs3 = null;
+			nextSettings = null;
 			mmap = new MainMap(game);
 		} else {
-			gs3 = new PlayerSettings(playerIdx + 1);
+			nextSettings = new PlayerSettings(playerIdx + 1);
 			mmap = null;
 		}
 
-		final ImageIcon[] PLAYER_ICONS = new ImageIcon[] {
+		final Image[] playerIcons = new Image[]{
 			game.image1,
 			game.image2,
 			game.image3,
@@ -86,7 +82,7 @@ public class PlayerSettings {
 			game.image7,
 			game.image8
 		};
-		final ImageIcon[] PLAYER_FIGURES = new ImageIcon[] {
+		final Image[] playerFigures = new Image[]{
 			game.imagep1,
 			game.imagep2,
 			game.imagep3,
@@ -96,114 +92,166 @@ public class PlayerSettings {
 			game.imagep7,
 			game.imagep8
 		};
-		final Integer[] INDICES = new Integer[PLAYER_ICONS.length];
-		for (int i = 0; i < INDICES.length; i++) {
-			INDICES[i] = i;
-		}
 
-		final Set<Integer> toRemoveInds = new HashSet<>(playerIdx);
+		final Set<Integer> usedIconIndices = new HashSet<>(playerIdx);
 		for (int i = 0; i < playerIdx; i++) {
-			toRemoveInds.add(game.p_icon[i]);
+			usedIconIndices.add(game.p_icon[i]);
 		}
 
-		final ImageIcon[] filteredIcons = removeIndices(PLAYER_ICONS, toRemoveInds);
-		final Integer[] filteredIndices = removeIndices(INDICES, toRemoveInds);
+		final List<IconChoice> filteredChoices = new ArrayList<>();
+		for (int i = 0; i < playerIcons.length; i++) {
+			if (!usedIconIndices.contains(i)) {
+				filteredChoices.add(new IconChoice(i, playerIcons[i]));
+			}
+		}
 
-		JFrame playerSettingsFrame = new JFrame("Player" + playerNum + " Setting");
-		playerSettingsFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		playerSettingsFrame.getContentPane().removeAll();
-		playerSettingsFrame.setSize(450, 320);
-		playerSettingsFrame.getContentPane().setLayout(null);
+		final Stage playerSettingsStage = new Stage();
+		playerSettingsStage.setTitle("Player" + playerNum + " Setting");
+		playerSettingsStage.setResizable(false);
+		playerSettingsStage.setOnCloseRequest(event -> event.consume());
+		if (previousStage != null) {
+			previousStage.hide();
+		}
 
-		final JLabel lblName = new JLabel("Name");
-		lblName.setBounds(122, 40, 46, 15);
-		playerSettingsFrame.getContentPane().add(lblName);
+		final Pane root = new Pane();
+		final Scene scene = new Scene(root, 450, 320);
+		playerSettingsStage.setScene(scene);
 
-		final JTextField name = new JTextField();
-		name.setText("Player" + playerNum);
-		name.setBounds(205, 34, 106, 21);
-		playerSettingsFrame.getContentPane().add(name);
-		lblName.setLabelFor(name);
+		final Label lblName = new Label("Name");
+		lblName.setLayoutX(122);
+		lblName.setLayoutY(40);
+		root.getChildren().add(lblName);
 
-		final JLabel lblAi = new JLabel("AI");
-		lblAi.setBounds(122, 79, 68, 15);
-		playerSettingsFrame.getContentPane().add(lblAi);
+		final TextField name = new TextField("Player" + playerNum);
+		name.setLayoutX(205);
+		name.setLayoutY(34);
+		name.setPrefWidth(106);
+		root.getChildren().add(name);
 
-		final JCheckBox ai = new JCheckBox();
+		final Label lblAi = new Label("AI");
+		lblAi.setLayoutX(122);
+		lblAi.setLayoutY(79);
+		root.getChildren().add(lblAi);
+
+		final CheckBox ai = new CheckBox();
 		ai.setSelected(!humanPlayer);
-		ai.setBounds(205, 76, 106, 21);
-		playerSettingsFrame.getContentPane().add(ai);
-		lblAi.setLabelFor(ai);
+		ai.setLayoutX(205);
+		ai.setLayoutY(76);
+		root.getChildren().add(ai);
 
-		final JLabel lblIcon = new JLabel("Icon");
-		lblIcon.setBounds(122, 124, 46, 15);
-		playerSettingsFrame.getContentPane().add(lblIcon);
+		final Label lblIcon = new Label("Icon");
+		lblIcon.setLayoutX(122);
+		lblIcon.setLayoutY(124);
+		root.getChildren().add(lblIcon);
 
-		final JComboBox<ImageIcon> icon = new JComboBox<>();
-		icon.setBounds(205, 118, 106, 21);
-		icon.setModel(new DefaultComboBoxModel<>(filteredIcons));
-		icon.setSelectedIndex(0);
-		playerSettingsFrame.getContentPane().add(icon);
-		lblIcon.setLabelFor(icon);
+		final ComboBox<IconChoice> icon = new ComboBox<>();
+		icon.setItems(FXCollections.observableArrayList(filteredChoices));
+		icon.setLayoutX(205);
+		icon.setLayoutY(118);
+		icon.setPrefWidth(106);
 
-		final JLabel lblStartingMoney = new JLabel("Starting money");
-		lblStartingMoney.setBounds(122, 165, 68, 15);
-		playerSettingsFrame.getContentPane().add(lblStartingMoney);
+		icon.setCellFactory(param -> new ListCell<IconChoice>() {
+			private final ImageView imageView = new ImageView();
 
-		final JSpinner startingMoney = new JSpinner();
-		startingMoney.setValue(30000);
-		startingMoney.setBounds(205, 159, 106, 21);
-		playerSettingsFrame.getContentPane().add(startingMoney);
-		lblStartingMoney.setLabelFor(startingMoney);
-
-		final JButton btnCancel = new JButton("Previous");
-		btnCancel.addActionListener(new ActionListener() {
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				playerSettingsFrame.setVisible(false);
-				f.setVisible(true);
-			}
-		});
-		btnCancel.setBounds(85, 214, 155, 23);
-		playerSettingsFrame.getContentPane().add(btnCancel);
-
-		final JLabel lblErrorValue = new JLabel("(error value)");
-		lblErrorValue.setForeground(Color.RED);
-		lblErrorValue.setBounds(321, 40, 103, 15);
-		lblErrorValue.setVisible(false);
-		playerSettingsFrame.getContentPane().add(lblErrorValue);
-
-		final JButton btnNext = new JButton("Next");
-		if (lastPlayer) {
-			btnNext.setText("Finish");
-		}
-		btnNext.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					game.p_name[playerIdx] = name.getText();
-				} catch(final Exception e1) {
-					lblErrorValue.setVisible(true);
-					return;
-				}
-				lblErrorValue.setVisible(false);
-
-				game.p_money[playerIdx] = (Integer) startingMoney.getValue();
-				game.p_type[playerIdx] = ai.isSelected() ? 1 : 0;
-				game.p_icon[playerIdx] = filteredIndices[icon.getSelectedIndex()];
-				game.p_ic[playerIdx] = PLAYER_ICONS[game.p_icon[playerIdx]];
-				game.p_pawn[playerIdx] = PLAYER_FIGURES[game.p_icon[playerIdx]];
-
-				playerSettingsFrame.setVisible(false);
-				if (lastPlayer) {
-					mmap.generate_map(game);
+			protected void updateItem(final IconChoice item, final boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setGraphic(null);
 				} else {
-					gs3.show(playerSettingsFrame, game);
+					imageView.setImage(item.icon);
+					imageView.setPreserveRatio(true);
+					imageView.setFitHeight(18);
+					setGraphic(imageView);
 				}
 			}
 		});
-		btnNext.setBounds(250, 214, 94, 23);
-		playerSettingsFrame.getContentPane().add(btnNext);
-		playerSettingsFrame.setVisible(true);
+		icon.setButtonCell(new ListCell<IconChoice>() {
+			private final ImageView imageView = new ImageView();
+
+			@Override
+			protected void updateItem(final IconChoice item, final boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setGraphic(null);
+				} else {
+					imageView.setImage(item.icon);
+					imageView.setPreserveRatio(true);
+					imageView.setFitHeight(18);
+					setGraphic(imageView);
+				}
+			}
+		});
+		icon.getSelectionModel().selectFirst();
+		root.getChildren().add(icon);
+
+		final Label lblStartingMoney = new Label("Starting money");
+		lblStartingMoney.setLayoutX(122);
+		lblStartingMoney.setLayoutY(165);
+		root.getChildren().add(lblStartingMoney);
+
+		final Spinner<Integer> startingMoney = new Spinner<>();
+		startingMoney.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, Integer.MAX_VALUE, 30000, 100));
+		startingMoney.setEditable(true);
+		startingMoney.setLayoutX(205);
+		startingMoney.setLayoutY(159);
+		startingMoney.setPrefWidth(106);
+		root.getChildren().add(startingMoney);
+
+		final Label lblErrorValue = new Label("(error value)");
+		lblErrorValue.setTextFill(Color.RED);
+		lblErrorValue.setLayoutX(321);
+		lblErrorValue.setLayoutY(40);
+		lblErrorValue.setVisible(false);
+		root.getChildren().add(lblErrorValue);
+
+		final Button btnCancel = new Button("Previous");
+		btnCancel.setLayoutX(85);
+		btnCancel.setLayoutY(214);
+		btnCancel.setPrefWidth(155);
+		btnCancel.setOnAction(event -> {
+			playerSettingsStage.close();
+			if (previousStage != null) {
+				previousStage.show();
+				previousStage.toFront();
+			}
+		});
+		root.getChildren().add(btnCancel);
+
+		final Button btnNext = new Button(lastPlayer ? "Finish" : "Next");
+		btnNext.setLayoutX(250);
+		btnNext.setLayoutY(214);
+		btnNext.setPrefWidth(94);
+		btnNext.setOnAction(event -> {
+			final String playerName = name.getText();
+			if (playerName == null || playerName.trim().isEmpty()) {
+				lblErrorValue.setVisible(true);
+				return;
+			}
+			lblErrorValue.setVisible(false);
+
+			final IconChoice selected = icon.getSelectionModel().getSelectedItem();
+			if (selected == null) {
+				lblErrorValue.setVisible(true);
+				return;
+			}
+
+			game.p_name[playerIdx] = playerName.trim();
+			game.p_money[playerIdx] = startingMoney.getValue();
+			game.p_type[playerIdx] = ai.isSelected() ? 1 : 0;
+			game.p_icon[playerIdx] = selected.sourceIndex;
+			game.p_ic[playerIdx] = playerIcons[selected.sourceIndex];
+			game.p_pawn[playerIdx] = playerFigures[selected.sourceIndex];
+
+			playerSettingsStage.hide();
+			if (lastPlayer) {
+				mmap.generate_map(game);
+			} else {
+				nextSettings.show(playerSettingsStage, game);
+			}
+		});
+		root.getChildren().add(btnNext);
+
+		playerSettingsStage.show();
 	}
 }

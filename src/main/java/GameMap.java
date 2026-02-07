@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import java.awt.Color;
+import javafx.scene.paint.Color;
 
 public class GameMap {
 
@@ -28,8 +28,8 @@ public class GameMap {
 	// type 9, NOT assign
 	int[] type = new int[size];
 	int[] id = new int[size];
-	int [][] pX = new int[Game.maxPSize][size];
-	int [][] pY = new int[Game.maxPSize][size];
+	int[][] pX = new int[Game.maxPSize][size];
+	int[][] pY = new int[Game.maxPSize][size];
 
 	// owner 0, No one
 	// owner 1, player 1...
@@ -42,25 +42,30 @@ public class GameMap {
 	long[] value = new long[size];
 	Color[] color = new Color[size];
 
-	//Color landColor[] = new Color[]{Color.red, Color.cyan, Color.blue, Color.green, Color.orange, Color.pink, Color.yellow, Color.gray};
 	int[][] sameColor = new int[colorSize][sameColorLandSize];
 
 	int hospitalId;
 	int jailId;
 	int ckshallId;
-	//int startId = 0;
 
-	public static int colorIndex(Color c) {
-		if (Color.red == c) return 0;
-		else if (Color.cyan == c) return 1;
-		else if (Color.blue == c) return 2;
-		else if (Color.green == c) return 3;
-		else if (Color.orange == c) return 4;
-		else if (Color.pink == c) return 5;
-		else if (Color.yellow == c) return 6;
-		else if (Color.gray == c) return 7;
-		else
-			// impossible
-			return -1;
+	public static int colorIndex(final Color c) {
+		if (Color.RED.equals(c)) {
+			return 0;
+		} else if (Color.CYAN.equals(c)) {
+			return 1;
+		} else if (Color.BLUE.equals(c)) {
+			return 2;
+		} else if (Color.GREEN.equals(c)) {
+			return 3;
+		} else if (Color.ORANGE.equals(c)) {
+			return 4;
+		} else if (Color.PINK.equals(c)) {
+			return 5;
+		} else if (Color.YELLOW.equals(c)) {
+			return 6;
+		} else if (Color.GRAY.equals(c)) {
+			return 7;
+		}
+		return -1;
 	}
 }
