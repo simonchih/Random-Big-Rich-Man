@@ -1,500 +1,198 @@
-/*
- * Copyright (C) 2017 Simon <ficstudio@yahoo.com.tw>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
+/* Copyright (C) 2017 Simon <ficstudio@yahoo.com.tw>
+ * Licensed under GNU GPL v3 or later; see LICENSE. */
+import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/** Logical board coordinates and explicit image boxes, independent of source resolution. */
 public class MapCanvas extends Canvas {
+    public static final int SIZE=1000, MARGIN=20, CORNER=120, TILE=80;
+    public static final int PAWN_WIDTH=84, PAWN_HEIGHT=96;
+    public static final int PAWN_SLOT_WIDTH=17, PAWN_SLOT_HEIGHT=25;
+    public final GameMap game_data;
+    public final Game mygame;
+    private final long[] lastMoney=new long[4], moneyDelta=new long[4], moneyAt=new long[4];
+    private boolean initialized;
+    private static final java.util.Map<String,Font> FONTS=new java.util.HashMap<>();
+    private final DropShadow shadow=new DropShadow(12, Color.web("#00000070"));
 
-	private static final Font FONT_WGY_12 = Font.font("WenQuanYi Zen Hei", 12);
-	private static final Font FONT_WGY_24 = Font.font("WenQuanYi Zen Hei", 24);
-	private static final Font FONT_TIMES_12 = Font.font("Times New Roman", 12);
+    public MapCanvas(GameMap gm, Game game) {
+        super(SIZE,SIZE); game_data=gm; mygame=game;
+    }
 
-	public final int max_size = 760;
-	public final int block_size = 60;
-	public final int left_x = 110;
-	public final int right_x = 650;
-	public final int up_y = 110;
-	public final int down_y = 650;
-	public final int color_long = 59;
-	public final int color_small = 20;
-	public final int down_string_x_start = 594;
-	public final int left_string_x_start = 20;
-	public final int up_string_x_start = 114;
-	public final int right_string_x_start = 690;
-	public final int up_down_d = 20;
-	public final int right_left_d = 15;
-	public final int right_left_ic_d = 20;
-	public final int left_string_y = 609;
-	public final int right_string_y = 129;
-	public final int string_player_d = 40;
+    public static Rectangle2D cell(int i) {
+        if(i<0 || i>=40) throw new IllegalArgumentException("Cell: "+i);
+        if(i==0) return new Rectangle2D(860,860,120,120);
+        if(i==10) return new Rectangle2D(20,860,120,120);
+        if(i==20) return new Rectangle2D(20,20,120,120);
+        if(i==30) return new Rectangle2D(860,20,120,120);
+        if(i<10) return new Rectangle2D(860-i*80,860,80,120);
+        if(i<20) return new Rectangle2D(20,860-(i-10)*80,120,80);
+        if(i<30) return new Rectangle2D(140+(i-21)*80,20,80,120);
+        return new Rectangle2D(860,140+(i-31)*80,120,80);
+    }
 
-	public final int p_gap = 5;
-
-	public final GameMap game_data;
-	public final Game mygame;
-
-	public MapCanvas(final GameMap gm, final Game game) {
-		this.game_data = gm;
-		this.mygame = game;
-		setWidth(max_size);
-		setHeight(max_size);
-	}
-
-	private static int imageWidth(final Image image) {
-		return (int) Math.round(image.getWidth());
-	}
-
-	private static int imageHeight(final Image image) {
-		return (int) Math.round(image.getHeight());
-	}
-
-	public void draw() {
-		final GraphicsContext gc = getGraphicsContext2D();
-		gc.setFill(Color.rgb(233, 234, 205));
-		gc.fillRect(0, 0, getWidth(), getHeight());
-
-		paintConstantField(gc);
-		paintVariableThings(gc);
-	}
-
-	public void paintConstantField(final GraphicsContext g) {
-		final int numPlayers = 4;
-
-		g.setFont(FONT_TIMES_12);
-		g.setStroke(Color.BLACK);
-		g.setFill(Color.BLACK);
-
-		for (int playerIdx = 0; playerIdx < numPlayers; playerIdx++) {
-			mygame.sp_x[playerIdx] = left_x + string_player_d;
-			mygame.sp_y[playerIdx] = up_y + (playerIdx + 1) * string_player_d;
-		}
-
-		g.strokeLine(left_x, 0, left_x, max_size);
-		g.strokeLine(right_x, 0, right_x, max_size);
-		g.strokeLine(0, up_y, max_size, up_y);
-		g.strokeLine(0, down_y, max_size, down_y);
-
-		for (int i = left_x + block_size; i < right_x; i += block_size) {
-			g.strokeLine(i, 0, i, up_y);
-		}
-		for (int i = left_x + block_size; i < right_x; i += block_size) {
-			g.strokeLine(i, down_y, i, max_size);
-		}
-		for (int i = up_y + block_size; i < down_y; i += block_size) {
-			g.strokeLine(0, i, left_x, i);
-		}
-		for (int i = up_y + block_size; i < down_y; i += block_size) {
-			g.strokeLine(right_x, i, max_size, i);
-		}
-
-		g.drawImage(
-			mygame.iarrow,
-			right_x + (max_size - right_x - imageWidth(mygame.iarrow)) / 2.0,
-			down_y + (max_size - down_y - imageHeight(mygame.iarrow)) / 2.0,
-			imageWidth(mygame.iarrow),
-			imageHeight(mygame.iarrow)
-		);
-
-		for (int i = 1; i < game_data.size; i++) {
-			switch (game_data.type[i]) {
-				case 0:
-					paintLand(g, i);
-					break;
-				case 1:
-					paintBigBlock(g, i);
-					break;
-				case 2:
-					paintChance(g, i);
-					break;
-				case 3:
-					paintOther(g, i);
-					break;
-				default:
-					break;
-			}
-		}
-	}
-
-	private void paintLand(final GraphicsContext g, final int i) {
-		if (i >= 1 && i <= 9) {
-			g.setStroke(Color.BLACK);
-			g.setFill(Color.BLACK);
-			g.strokeLine(right_x - block_size * (i - 1), down_y + color_small + 1, right_x - block_size * i, down_y + color_small + 1);
-			g.fillText(game_data.name[i], down_string_x_start - block_size * (i - 1), down_y + color_small + up_down_d);
-			g.fillText("$" + game_data.value[i], down_string_x_start - block_size * (i - 1), down_y + color_small + 2 * up_down_d);
-			g.setFill(game_data.color[i]);
-			g.fillRect(right_x - block_size * i + 1, down_y + 1, color_long, color_small);
-
-			if (game_data.level[i] == 4) {
-				g.drawImage(mygame.ihotel, right_x - block_size * i + 1, down_y + 1, imageWidth(mygame.ihotel), imageHeight(mygame.ihotel));
-			} else if (game_data.level[i] > 0) {
-				g.drawImage(mygame.ihouse, right_x - block_size * i + 1, down_y + 1, imageWidth(mygame.ihouse), imageHeight(mygame.ihouse));
-				if (game_data.level[i] >= 2) {
-					g.drawImage(mygame.ihouse,
-						right_x - block_size * i + imageWidth(mygame.ihouse) + 1,
-						down_y + 1,
-						imageWidth(mygame.ihouse),
-						imageHeight(mygame.ihouse));
-				}
-				if (game_data.level[i] == 3) {
-					g.drawImage(mygame.ihouse,
-						right_x - block_size * i + 2 * imageWidth(mygame.ihouse) + 1,
-						down_y + 1,
-						imageWidth(mygame.ihouse),
-						imageHeight(mygame.ihouse));
-				}
-			}
-
-			if (game_data.owner[i] > 0) {
-				final Image ownerIcon = mygame.p_ic[game_data.owner[i] - 1];
-				g.drawImage(ownerIcon,
-					right_x - block_size * i + (block_size - imageWidth(ownerIcon)) / 2.0,
-					down_y + color_small + 3 * up_down_d,
-					imageWidth(ownerIcon),
-					imageHeight(ownerIcon));
-			}
-		} else if (i >= 11 && i <= 19) {
-			g.setStroke(Color.BLACK);
-			g.setFill(Color.BLACK);
-			g.strokeLine(left_x - color_small - 1, down_y - block_size * (i - 11), left_x - color_small - 1, down_y - block_size * (i - 10));
-			g.fillText(game_data.name[i], left_string_x_start, left_string_y - block_size * (i - 11));
-			g.fillText("$" + game_data.value[i], left_string_x_start, left_string_y + right_left_d - block_size * (i - 11));
-			g.setFill(game_data.color[i]);
-			g.fillRect(left_x - color_small, down_y - block_size * (i - 10) + 1, color_small, color_long);
-
-			if (game_data.level[i] == 4) {
-				g.drawImage(mygame.ihotel_left,
-					left_x - color_small,
-					down_y - block_size * (i - 10) + 1,
-					imageWidth(mygame.ihotel_left),
-					imageHeight(mygame.ihotel_left));
-			} else if (game_data.level[i] > 0) {
-				g.drawImage(mygame.ihouse_left,
-					left_x - color_small,
-					down_y - block_size * (i - 10) + 1,
-					imageWidth(mygame.ihouse_left),
-					imageHeight(mygame.ihouse_left));
-				if (game_data.level[i] >= 2) {
-					g.drawImage(mygame.ihouse_left,
-						left_x - color_small,
-						down_y - block_size * (i - 10) + imageHeight(mygame.ihouse_left) + 1,
-						imageWidth(mygame.ihouse_left),
-						imageHeight(mygame.ihouse_left));
-				}
-				if (game_data.level[i] == 3) {
-					g.drawImage(mygame.ihouse_left,
-						left_x - color_small,
-						down_y - block_size * (i - 10) + 2 * imageHeight(mygame.ihouse_left) + 1,
-						imageWidth(mygame.ihouse_left),
-						imageHeight(mygame.ihouse_left));
-				}
-			}
-			if (game_data.owner[i] > 0) {
-				final Image ownerIcon = mygame.p_ic[game_data.owner[i] - 1];
-				g.drawImage(ownerIcon,
-					(left_x - color_small - imageWidth(ownerIcon)) / 2.0,
-					left_string_y + right_left_ic_d - block_size * (i - 11),
-					imageWidth(ownerIcon),
-					imageHeight(ownerIcon));
-			}
-		} else if (i >= 21 && i <= 29) {
-			g.setStroke(Color.BLACK);
-			g.setFill(Color.BLACK);
-			g.strokeLine(left_x + block_size * (i - 21), up_y - color_small - 1, left_x + block_size * (i - 20), up_y - color_small - 1);
-			g.fillText(game_data.name[i], up_string_x_start + block_size * (i - 21), up_y - color_small - up_down_d);
-			g.fillText("$" + game_data.value[i], up_string_x_start + block_size * (i - 21), up_y - color_small - 2 * up_down_d);
-			g.setFill(game_data.color[i]);
-			g.fillRect(left_x + block_size * (i - 21) + 1, up_y - color_small, color_long, color_small);
-
-			if (game_data.level[i] == 4) {
-				g.drawImage(mygame.ihotel_up,
-					left_x + block_size * (i - 21) + 1,
-					up_y - color_small,
-					imageWidth(mygame.ihotel_up),
-					imageHeight(mygame.ihotel_up));
-			} else if (game_data.level[i] > 0) {
-				g.drawImage(mygame.ihouse_up,
-					left_x + block_size * (i - 21) + 1,
-					up_y - color_small,
-					imageWidth(mygame.ihouse_up),
-					imageHeight(mygame.ihouse_up));
-				if (game_data.level[i] >= 2) {
-					g.drawImage(mygame.ihouse_up,
-						left_x + block_size * (i - 21) + imageWidth(mygame.ihouse_up) + 1,
-						up_y - color_small,
-						imageWidth(mygame.ihouse_up),
-						imageHeight(mygame.ihouse_up));
-				}
-				if (game_data.level[i] == 3) {
-					g.drawImage(mygame.ihouse_up,
-						left_x + block_size * (i - 21) + 2 * imageWidth(mygame.ihouse_up) + 1,
-						up_y - color_small,
-						imageWidth(mygame.ihouse_up),
-						imageHeight(mygame.ihouse_up));
-				}
-			}
-			if (game_data.owner[i] > 0) {
-				final Image ownerIcon = mygame.p_ic[game_data.owner[i] - 1];
-				g.drawImage(ownerIcon,
-					left_x + block_size * (i - 21) + (block_size - imageWidth(ownerIcon)) / 2.0,
-					up_y - color_small - 3 * up_down_d - imageHeight(ownerIcon),
-					imageWidth(ownerIcon),
-					imageHeight(ownerIcon));
-			}
-		} else if (i >= 31 && i <= 39) {
-			g.setStroke(Color.BLACK);
-			g.setFill(Color.BLACK);
-			g.strokeLine(right_x + color_small + 1, up_y + block_size * (i - 31), right_x + color_small + 1, up_y + block_size * (i - 30));
-			g.fillText(game_data.name[i], right_string_x_start, right_string_y + block_size * (i - 31));
-			g.fillText("$" + game_data.value[i], right_string_x_start, right_string_y + right_left_d + block_size * (i - 31));
-			g.setFill(game_data.color[i]);
-			g.fillRect(right_x + 1, up_y + block_size * (i - 31) + 1, color_small, color_long);
-
-			if (game_data.level[i] == 4) {
-				g.drawImage(mygame.ihotel_right,
-					right_x + 1,
-					up_y + block_size * (i - 31) + 1,
-					imageWidth(mygame.ihotel_right),
-					imageHeight(mygame.ihotel_right));
-			} else if (game_data.level[i] > 0) {
-				g.drawImage(mygame.ihouse_right,
-					right_x + 1,
-					up_y + block_size * (i - 31) + 1,
-					imageWidth(mygame.ihouse_right),
-					imageHeight(mygame.ihouse_right));
-				if (game_data.level[i] >= 2) {
-					g.drawImage(mygame.ihouse_right,
-						right_x + 1,
-						up_y + block_size * (i - 31) + imageHeight(mygame.ihouse_right) + 1,
-						imageWidth(mygame.ihouse_right),
-						imageHeight(mygame.ihouse_right));
-				}
-				if (game_data.level[i] == 3) {
-					g.drawImage(mygame.ihouse_right,
-						right_x + 1,
-						up_y + block_size * (i - 31) + 2 * imageHeight(mygame.ihouse_right) + 1,
-						imageWidth(mygame.ihouse_right),
-						imageHeight(mygame.ihouse_right));
-				}
-			}
-			if (game_data.owner[i] > 0) {
-				final Image ownerIcon = mygame.p_ic[game_data.owner[i] - 1];
-				g.drawImage(ownerIcon,
-					right_x + color_small + (block_size - imageWidth(ownerIcon)) / 2.0,
-					right_string_y + right_left_ic_d + block_size * (i - 31),
-					imageWidth(ownerIcon),
-					imageHeight(ownerIcon));
-			}
-		}
-	}
-
-	private void paintBigBlock(final GraphicsContext g, final int i) {
-		final Image iblock;
-		switch (game_data.id[i]) {
-			case 25:
-				iblock = mygame.ijail;
-				break;
-			case 26:
-				iblock = mygame.ickshall;
-				break;
-			case 27:
-				iblock = mygame.ihospital;
-				break;
-			default:
-				iblock = null;
-				break;
-		}
-
-		if (iblock == null) {
-			return;
-		}
-
-		switch (i) {
-			case 10:
-				g.drawImage(
-					iblock,
-					(left_x - imageWidth(iblock)) / 2.0,
-					down_y + (max_size - down_y - imageHeight(iblock)) / 2.0,
-					imageWidth(iblock),
-					imageHeight(iblock)
-				);
-				break;
-			case 20:
-				g.drawImage(
-					iblock,
-					(left_x - imageWidth(iblock)) / 2.0,
-					(up_y - imageHeight(iblock)) / 2.0,
-					imageWidth(iblock),
-					imageHeight(iblock)
-				);
-				break;
-			case 30:
-				g.drawImage(
-					iblock,
-					right_x + (max_size - right_x - imageWidth(iblock)) / 2.0,
-					(up_y - imageHeight(iblock)) / 2.0,
-					imageWidth(iblock),
-					imageHeight(iblock)
-				);
-				break;
-			default:
-				break;
-		}
-	}
-
-	private void paintChance(final GraphicsContext g, final int i) {
-		if (i >= 1 && i <= 9) {
-			g.drawImage(
-				mygame.iquestionmark,
-				right_x - block_size * i,
-				down_y + color_small + 1,
-				imageWidth(mygame.iquestionmark),
-				imageHeight(mygame.iquestionmark)
-			);
-		} else if (i >= 11 && i <= 19) {
-			g.drawImage(
-				mygame.iquestionmark_left,
-				left_x - color_small - imageWidth(mygame.iquestionmark_left) - 1,
-				down_y - block_size * (i - 10),
-				imageWidth(mygame.iquestionmark_left),
-				imageHeight(mygame.iquestionmark_left)
-			);
-		} else if (i >= 21 && i <= 29) {
-			g.drawImage(
-				mygame.iquestionmark_up,
-				left_x + block_size * (i - 21),
-				up_y - color_small - imageHeight(mygame.iquestionmark_up) - 1,
-				imageWidth(mygame.iquestionmark_up),
-				imageHeight(mygame.iquestionmark_up)
-			);
-		} else if (i >= 31 && i <= 39) {
-			g.drawImage(
-				mygame.iquestionmark_right,
-				right_x + color_small + 1,
-				up_y + block_size * (i - 31),
-				imageWidth(mygame.iquestionmark_right),
-				imageHeight(mygame.iquestionmark_right)
-			);
-		}
-	}
-
-	private void paintOther(final GraphicsContext g, final int i) {
-		String s1 = null;
-		String s2 = null;
-		switch (game_data.id[i]) {
-			case 36:
-				s1 = mygame.s36_1;
-				s2 = mygame.s36_2;
-				break;
-			case 37:
-				s1 = mygame.s37_1;
-				s2 = mygame.s37_2;
-				break;
-			case 38:
-				s1 = mygame.s38_1;
-				s2 = mygame.s38_2;
-				break;
-			case 39:
-				s1 = mygame.s39_1;
-				s2 = mygame.s39_2;
-				break;
-			default:
-				break;
-		}
-
-		g.setFill(Color.BLACK);
-		if (i >= 1 && i <= 9) {
-			g.fillText(s1, down_string_x_start - block_size * (i - 1), down_y + color_small + up_down_d);
-			g.fillText(s2, down_string_x_start - block_size * (i - 1), down_y + color_small + 2 * up_down_d);
-		} else if (i >= 11 && i <= 19) {
-			g.fillText(s1, left_string_x_start, left_string_y - block_size * (i - 11));
-			g.fillText(s2, left_string_x_start, left_string_y + right_left_d - block_size * (i - 11));
-		} else if (i >= 21 && i <= 29) {
-			g.fillText(s2, up_string_x_start + block_size * (i - 21), up_y - color_small - up_down_d);
-			g.fillText(s1, up_string_x_start + block_size * (i - 21), up_y - color_small - 2 * up_down_d);
-		} else if (i >= 31 && i <= 39) {
-			g.fillText(s1, right_string_x_start, right_string_y + block_size * (i - 31));
-			g.fillText(s2, right_string_x_start, right_string_y + right_left_d + block_size * (i - 31));
-		}
-	}
-
-	public void paintVariableThings(final GraphicsContext g) {
-		final int numPlayers = 4;
-		final List<String> sps = new ArrayList<>(numPlayers);
-
-		for (int playerIdx = 0; playerIdx < numPlayers; playerIdx++) {
-			sps.add(String.format("%s: %d (%s)", mygame.p_name[playerIdx], mygame.p_money[playerIdx], mygame.p_status[playerIdx]));
-		}
-
-		for (int playerIdx = 0; playerIdx < numPlayers; playerIdx++) {
-			if (playerIdx == mygame.turn) {
-				g.setFont(FONT_WGY_24);
-				g.setFill(Color.BLUE);
-			} else {
-				g.setFill(Color.BLACK);
-				g.setFont(FONT_WGY_12);
-			}
-			g.fillText(sps.get(playerIdx), mygame.sp_x[playerIdx], mygame.sp_y[playerIdx]);
-		}
-		g.setFont(FONT_WGY_12);
-		g.setFill(Color.BLACK);
-
-		for (int playerIdx = 0; playerIdx < numPlayers; playerIdx++) {
-			if (mygame.p_type[playerIdx] != 9) {
-				g.drawImage(
-					mygame.p_pawn[playerIdx],
-					mygame.p_x_now[playerIdx],
-					mygame.p_y_now[playerIdx],
-					imageWidth(mygame.p_pawn[playerIdx]),
-					imageHeight(mygame.p_pawn[playerIdx])
-				);
-
-				if (mygame.pshow_sqmark[playerIdx]) {
-					g.drawImage(
-						mygame.isqmark,
-						mygame.p_sqmark_x_now[playerIdx],
-						mygame.p_sqmark_y_now[playerIdx],
-						imageWidth(mygame.isqmark),
-						imageHeight(mygame.isqmark)
-					);
-				}
-			}
-		}
-
-		// Keep dice on top layer so it is never blocked by pawn/question marks.
-		g.drawImage(
-			mygame.dice.idice1,
-			mygame.dice.idice1X,
-			mygame.dice.idice1Y,
-			imageWidth(mygame.dice.idice1),
-			imageHeight(mygame.dice.idice1)
-		);
-		g.drawImage(
-			mygame.dice.idice2,
-			mygame.dice.idice2X,
-			mygame.dice.idice2Y,
-			imageWidth(mygame.dice.idice2),
-			imageHeight(mygame.dice.idice2)
-		);
-	}
+    public static Rectangle2D pawnSlot(int cell, int player) {
+        Rectangle2D r=cell(cell);
+        // Logical landing anchors stay separate; the large figures intentionally overlap tile art.
+        return new Rectangle2D(r.getMinX()+(r.getWidth()-72)/2+player*18,
+            r.getMaxY()-29,PAWN_SLOT_WIDTH,PAWN_SLOT_HEIGHT);
+    }
+    private static Font font(double size, boolean bold) {
+        return FONTS.computeIfAbsent(size+":"+bold,k -> Font.font("Microsoft JhengHei",bold?FontWeight.BOLD:FontWeight.NORMAL,size));
+    }
+    public boolean hasAnimations(long now) {
+        for(int p=0;p<Game.maxPSize;p++) if(mygame.pawnJumps.get(p)!=null) return true;
+        if(now-mygame.dice.rolledAt<600_000_000L) return true;
+        for(long at:moneyAt) if(at!=0 && now-at<1_600_000_000L) return true;
+        return false;
+    }
+    private static void text(GraphicsContext g,String s,double x,double y,double size,Color color,double width) {
+        g.setFont(font(size,false)); g.setFill(color); g.setTextAlign(TextAlignment.LEFT);
+        g.fillText(s==null?"":s,x,y,width);
+    }
+    private static void center(GraphicsContext g,String s,double x,double y,double size,Color color,double width) {
+        g.setFont(font(size,true)); g.setFill(color); g.setTextAlign(TextAlignment.CENTER);
+        g.fillText(s==null?"":s,x,y,width); g.setTextAlign(TextAlignment.LEFT);
+    }
+    public void draw() {
+        GraphicsContext g=getGraphicsContext2D();
+        g.setImageSmoothing(true);
+        g.setFill(new LinearGradient(0,0,1,1,true,CycleMethod.NO_CYCLE,
+            new Stop(0,Color.web("#283b56")),new Stop(1,Color.web("#0a1528"))));
+        g.fillRoundRect(0,0,SIZE,SIZE,32,32);
+        g.setStroke(Theme.GOLD); g.setLineWidth(2); g.strokeRoundRect(8,8,984,984,26,26);
+        paintConstantField(g); paintVariableThings(g);
+    }
+    public void paintConstantField(GraphicsContext g) {
+        for(int i=0;i<40;i++) paintCell(g,i);
+        g.setFill(Color.web("#112139")); g.fillRoundRect(151,151,698,698,22,22);
+        Art.draw(g,Art.load("taipei"),418,165,416,278);
+        text(g,"TAIPEI · FORTUNE EDITION",175,191,12,Theme.GOLD,232);
+        text(g,"瑞德",175,250,47,Theme.GOLD,230);
+        text(g,"大富翁",175,308,47,Theme.GOLD,232);
+        text(g,"R I C H M A N",178,343,19,Color.WHITE,228);
+        text(g,"四位玩家，一場城市冒險。",177,382,14,Color.web("#b5c8d9"),235);
+        text(g,"買地 · 建設 · 探索你的好運",177,407,13,Color.web("#879fb9"),235);
+        text(g,"玩家資產  /  PLAYERS",177,467,13,Theme.GOLD,300);
+        text(g,"金色外框標示目前回合",641,467,12,Color.web("#afc0d4"),188);
+        g.setFill(Color.web("#0b172a")); g.fillRoundRect(175,708,650,76,16,16);
+        text(g,"命運之骰",195,738,18,Theme.GOLD,180);
+        text(g,"擲出下一段旅程",195,762,12,Color.web("#afc0d4"),180);
+    }
+    private void paintCell(GraphicsContext g,int i) {
+        Rectangle2D r=cell(i);
+        double x=r.getMinX()+2,y=r.getMinY()+2,w=r.getWidth()-4,h=r.getHeight()-4;
+        boolean tall=r.getHeight()>r.getWidth(),corner=i%10==0;
+        g.setFill(Color.web(corner?"#f4d99d":"#fff1d9")); g.fillRoundRect(x,y,w,h,9,9);
+        g.setStroke(Color.web("#c9a35c")); g.setLineWidth(1); g.strokeRoundRect(x+0.5,y+0.5,w-1,h-1,9,9);
+        if(game_data.type[i]==0 && i!=0) {
+            g.setFill(game_data.color[i].deriveColor(0,0.65,0.88,1)); g.fillRoundRect(x+3,y+3,w-6,15,6,6);
+            boolean sideBuilding=!tall && game_data.level[i]>0;
+            double labelX=sideBuilding?x+76:x+w/2, labelWidth=sideBuilding?w-46:w-8;
+            center(g,game_data.name[i],labelX,y+33,11,Theme.INK,labelWidth);
+            center(g,"$"+game_data.value[i],labelX,y+49,10,Color.web("#806044"),labelWidth);
+            if(tall) {
+                int level=game_data.level[i];
+                if(level>0) {
+                    Art.draw(g,level==4?mygame.ihotel:mygame.ihouse,x+8,y+53,33,30);
+                    text(g,level==4?"HOTEL":"×"+level,x+43,y+73,10,Theme.INK,w-46);
+                } else if(game_data.owner[i]>0) Art.draw(g,mygame.p_ic[game_data.owner[i]-1],x+w/2-15,y+52,30,30);
+            } else if(game_data.level[i]>0) {
+                Art.draw(g,game_data.level[i]==4?mygame.ihotel:mygame.ihouse,x+4,y+19,38,32);
+                center(g,game_data.level[i]==4?"HOTEL":"LEVEL "+game_data.level[i],x+w/2,y+14,9,Theme.INK,w-10);
+            }
+            if(game_data.owner[i]>0) {
+                g.setStroke(Theme.PLAYERS[game_data.owner[i]-1]); g.setLineWidth(3);
+                g.strokeRoundRect(x+2,y+2,w-4,h-4,8,8);
+            }
+        } else {
+            Image art; String label;
+            if(i==0) { art=mygame.iarrow; label="起點  +$2,000"; }
+            else if(game_data.type[i]==2) { art=mygame.iquestionmark; label="機會"; }
+            else {
+                switch(game_data.id[i]) {
+                    case 25: art=mygame.ijail; label="監獄"; break;
+                    case 26: art=mygame.ickshall; label="中正紀念堂"; break;
+                    case 27: art=mygame.ihospital; label="醫院"; break;
+                    case 36: art=mygame.ijail; label="前往監獄"; break;
+                    case 37: art=mygame.ihospital; label="前往醫院"; break;
+                    case 38: art=mygame.ihouse; label="土地稅"; break;
+                    case 39: art=mygame.ihotel; label="房屋稅"; break;
+                    default: art=mygame.iarrow; label="起點";
+                }
+            }
+            if(!tall && !corner) {
+                Art.draw(g,art,x+3,y+1,43,43); center(g,label,x+79,y+26,12,Theme.INK,w-53);
+            } else {
+                Art.draw(g,art,x+8,y+2,w-16,h-48); center(g,label,x+w/2,y+h-32,12,Theme.INK,w-8);
+            }
+        }
+    }
+    public void paintVariableThings(GraphicsContext g) {
+        long now=System.nanoTime();
+        for(int p=0;p<4;p++) {
+            if(initialized && lastMoney[p]!=mygame.p_money[p]) {
+                moneyDelta[p]=mygame.p_money[p]-lastMoney[p]; moneyAt[p]=now;
+            }
+            lastMoney[p]=mygame.p_money[p];
+            double x=175+(p%2)*333,y=484+(p/2)*108;
+            g.setFill(Color.web(p==mygame.turn?"#304459":"#1c304a")); g.fillRoundRect(x,y,317,96,13,13);
+            g.setStroke(p==mygame.turn?Theme.GOLD:Color.web("#3c5068")); g.setLineWidth(p==mygame.turn?2:1);
+            g.strokeRoundRect(x,y,317,96,13,13);
+            if(mygame.p_ic[p]!=null) Art.draw(g,mygame.p_ic[p],x+8,y+9,68,76);
+            text(g,mygame.p_name[p]+(p==mygame.turn?"  •  回合中":""),x+85,y+24,14,Theme.PLAYERS[p],mygame.pshow_sqmark[p]?196:218);
+            if(mygame.pshow_sqmark[p]) Art.draw(g,mygame.isqmark,x+289,y+5,20,20);
+            text(g,String.format("$%,d",mygame.p_money[p]),x+85,y+52,23,Color.web("#fff0cf"),218);
+            String status=mygame.p_status[p];
+            if(status==null || status.equals("0")) status=mygame.p_type[p]==0?"準備出發 · 手動玩家":"準備出發 · 電腦玩家";
+            text(g,mygame.p_type[p]==9?"已破產":status,x+85,y+77,11,Color.web("#b5c8d9"),218);
+            double age=(now-moneyAt[p])/1e9;
+            if(moneyAt[p]!=0 && age<1.5) {
+                g.save(); g.setGlobalAlpha(1-age/1.5);
+                text(g,(moneyDelta[p]>0?"+":"")+String.format("%,d",moneyDelta[p]),x+185,y+48-age*18,16,
+                    moneyDelta[p]>0?Color.web("#80ebbf"):Color.web("#ff9382"),120); g.restore();
+            }
+        }
+        initialized=true;
+        // Paint the active player last so the jumping figure stays above all other pieces.
+        for(int order=0;order<4;order++) {
+            int p=(mygame.turn+1+order)%4;
+            if(mygame.p_type[p]==9 || mygame.p_pawn[p]==null) continue;
+            PawnJump jump=mygame.pawnJumps.get(p);
+            PawnJump.Pose pose=jump==null
+                ?new PawnJump.Pose(mygame.p_x_now[p],mygame.p_y_now[p],0,1,1):jump.pose(now);
+            double footX=pose.x()+PAWN_SLOT_WIDTH/2.0, footY=pose.y()+PAWN_SLOT_HEIGHT;
+            double shadowWidth=48*(1-0.35*pose.lift()/PawnJump.HEIGHT);
+            g.setFill(Color.color(0,0,0,0.22));
+            g.fillOval(footX-shadowWidth/2,footY-9,shadowWidth,12);
+            g.setStroke(Theme.PLAYERS[p]); g.setLineWidth(p==mygame.turn?3:2);
+            g.strokeOval(footX-shadowWidth/2,footY-9,shadowWidth,12);
+            double width=PAWN_WIDTH*pose.scaleX(), height=PAWN_HEIGHT*pose.scaleY();
+            // Allow overlap with neighboring artwork, but keep the full figure inside the canvas.
+            double x=Math.max(8,Math.min(SIZE-8-width,footX-width/2));
+            double y=Math.max(8,Math.min(SIZE-8-height,footY-height-pose.lift()));
+            g.save(); g.setEffect(shadow); g.translate(x,y); g.scale(pose.scaleX(),pose.scaleY());
+            Art.draw(g,mygame.p_pawn[p],0,0,PAWN_WIDTH,PAWN_HEIGHT);
+            g.restore();
+        }
+        // Animation changes only presentation; the dice result is never altered by rendering.
+        double elapsed=(now-mygame.dice.rolledAt)/1e9;
+        for(int d=0;d<2;d++) {
+            double x=442+d*84,y=715;
+            double angle=elapsed>=0 && elapsed<0.48?Math.sin(elapsed*48+d)*14*(1-elapsed/0.48):0;
+            g.save(); g.translate(x+30,y+30); g.rotate(angle); g.setEffect(shadow);
+            Art.draw(g,d==0?mygame.dice.idice1:mygame.dice.idice2,-30,-30,60,60); g.restore();
+        }
+        text(g,"前進 "+mygame.dice.count+" 格",638,754,19,Theme.GOLD,168);
+    }
 }

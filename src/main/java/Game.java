@@ -20,7 +20,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import javax.sound.sampled.AudioInputStream;
@@ -36,44 +35,13 @@ public class Game extends Application {
 
 	public static PlayerSettings gs1 = new PlayerSettings(0);
 
-	public Image image1 = loadImage("/Image/gtkmonop-token1.png");
-	public Image image2 = loadImage("/Image/gtkmonop-token8.png");
-	public Image image3 = loadImage("/Image/gtkmonop-token7.png");
-	public Image image4 = loadImage("/Image/gtkmonop-token6.png");
-	public Image image5 = loadImage("/Image/gtkmonop-token5.png");
-	public Image image6 = loadImage("/Image/gtkmonop-token4.png");
-	public Image image7 = loadImage("/Image/gtkmonop-token3.png");
-	public Image image8 = loadImage("/Image/gtkmonop-token2.png");
-
-	public Image imagep1 = loadImage("/Image/pawn1.gif");
-	public Image imagep2 = loadImage("/Image/pawn2.gif");
-	public Image imagep3 = loadImage("/Image/pawn3.gif");
-	public Image imagep4 = loadImage("/Image/pawn4.gif");
-	public Image imagep5 = loadImage("/Image/pawn5.gif");
-	public Image imagep6 = loadImage("/Image/pawn6.gif");
-	public Image imagep7 = loadImage("/Image/pawn7.gif");
-	public Image imagep8 = loadImage("/Image/pawn8.gif");
-
-	public Image iarrow = loadImage("/Image/gtkmonop-go-0.png");
-	public Image ijail = loadImage("/Image/jail.jpg");
-	public Image ickshall = loadImage("/Image/CKS_Memorial_Hall.jpg");
-	public Image ihospital = loadImage("/Image/Hospital.jpg");
-
-	public Image ihouse = loadImage("/Image/house.png");
-	public Image ihouse_left = loadImage("/Image/house_left.png");
-	public Image ihouse_up = loadImage("/Image/house_up.png");
-	public Image ihouse_right = loadImage("/Image/house_right.png");
-	public Image ihotel = loadImage("/Image/hotel.png");
-	public Image ihotel_left = loadImage("/Image/hotel_left.png");
-	public Image ihotel_up = loadImage("/Image/hotel_up.png");
-	public Image ihotel_right = loadImage("/Image/hotel_right.png");
-
-	public Image iquestionmark = loadImage("/Image/questionmark_60x79.png");
-	public Image iquestionmark_left = loadImage("/Image/questionmark_60x79_left.png");
-	public Image iquestionmark_right = loadImage("/Image/questionmark_60x79_right.png");
-	public Image iquestionmark_up = loadImage("/Image/questionmark_60x79_up.png");
-
-	public Image isqmark = loadImage("/Image/sqmark_8x11.png");
+	public Image image1 = Art.sprite(0), image2 = Art.sprite(1), image3 = Art.sprite(2), image4 = Art.sprite(3);
+	public Image image5 = Art.sprite(4), image6 = Art.sprite(5), image7 = Art.sprite(6), image8 = Art.sprite(7);
+	public Image imagep1 = image1, imagep2 = image2, imagep3 = image3, imagep4 = image4;
+	public Image imagep5 = image5, imagep6 = image6, imagep7 = image7, imagep8 = image8;
+	public Image iarrow = Art.sprite(13), ijail = Art.sprite(12), ickshall = Art.sprite(10), ihospital = Art.sprite(11);
+	public Image ihouse = Art.sprite(8), ihotel = Art.sprite(9);
+	public Image iquestionmark = Art.sprite(14), isqmark = iquestionmark;
 
 	public static final String s36_1 = "Go to";
 	public static final String s36_2 = "Jail";
@@ -110,6 +78,8 @@ public class Game extends Application {
 	public int[] p_sqmark_y_now;
 	public int[] p_x_now;
 	public int[] p_y_now;
+	public final java.util.concurrent.atomic.AtomicReferenceArray<PawnJump> pawnJumps =
+		new java.util.concurrent.atomic.AtomicReferenceArray<>(maxPSize);
 	public int[] p_id;
 	public int[] p_dest_id;
 	public String[] p_status;
@@ -168,9 +138,6 @@ public class Game extends Application {
 		return new Image(resource.toExternalForm());
 	}
 
-	private static int intImageHeight(final Image image) {
-		return (int) Math.round(image.getHeight());
-	}
 
 	public Random getRandom() {
 		return random;
@@ -245,32 +212,40 @@ public class Game extends Application {
 
 	public void updateSqMarkPosition(final int playerIdx) {
 		p_sqmark_x_now[playerIdx] = p_x_now[playerIdx] + 1;
-		p_sqmark_y_now[playerIdx] = p_y_now[playerIdx] - intImageHeight(isqmark);
+		p_sqmark_y_now[playerIdx] = Math.max(20, p_y_now[playerIdx] - 16);
 	}
 
 	@Override
 	public void start(final Stage primaryStage) {
-		btnNewButton = new Button("Roll Dice");
+		btnNewButton = Theme.button("擲骰子  /  ROLL", true);
 		rollButtonDisabledState = btnNewButton.isDisable();
-		btnPropertyButton = new Button("Player's Property");
+		btnPropertyButton = Theme.button("我的資產  /  PROPERTY", false);
 		property = new Property(this);
 
-		final Button btnANewGame = new Button("A New Game");
-		btnANewGame.setPrefWidth(264);
+		final Button btnANewGame = Theme.button("開始新遊戲   →", true);
+		btnANewGame.setPrefWidth(260);
 		btnANewGame.setOnAction(event -> {
 			primaryStage.hide();
 			gs1.show(primaryStage, this);
 		});
 
-		final StackPane panel = new StackPane();
+		final javafx.scene.layout.VBox copy = new javafx.scene.layout.VBox(18,
+			Theme.label("TAIPEI  ·  FORTUNE EDITION", "eyebrow"),
+			Theme.label("瑞德大富翁", "title"), Theme.label("RICHMAN", "heading"),
+			Theme.label("一座城市，無限可能。\n選擇你的角色，展開致富旅程。", "subtitle"), btnANewGame);
+		copy.setAlignment(Pos.CENTER_LEFT);
+		copy.setPadding(new javafx.geometry.Insets(32));
+		final javafx.scene.layout.HBox panel = new javafx.scene.layout.HBox(16, copy,
+			Art.view(Art.load("taipei"), 510, 340));
 		panel.setAlignment(Pos.CENTER);
-		panel.getChildren().add(btnANewGame);
-
-		final Scene scene = new Scene(panel, 300, 300);
-		primaryStage.setTitle("Random Big Rich Man");
+		panel.setPadding(new javafx.geometry.Insets(24));
+		final Scene scene = Theme.scene(panel, 940, 410);
+		primaryStage.setTitle("瑞德大富翁 · RICHMAN");
+		Theme.decorate(primaryStage);
 		primaryStage.setScene(scene);
 		primaryStage.setResizable(false);
 		primaryStage.show();
+		Theme.reveal(panel);
 	}
 
 	public static void main(final String[] args) {

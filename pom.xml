@@ -300,7 +300,6 @@
 					<mainClass>${project.mainClass}</mainClass>
 					<options>
 						<option>--enable-native-access=javafx.graphics</option>
-						<option>--sun-misc-unsafe-memory-access=allow</option>
 					</options>
 				</configuration>
 			</plugin>
@@ -517,6 +516,7 @@
                 <mainClass>${project.mainClass}</mainClass>
 
                 <type>APP_IMAGE</type>
+                <icon>${project.basedir}/src/main/resources/Art/richman.ico</icon>
 
                 <modulePaths>
                   <modulePath>${project.build.directory}/jpackage-mods</modulePath>

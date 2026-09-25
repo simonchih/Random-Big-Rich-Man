@@ -15,12 +15,6 @@
  */
 
 import javafx.application.Platform;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.stage.Stage;
 
 public class BuyLand {
 
@@ -42,66 +36,12 @@ public class BuyLand {
 		}
 	}
 
-	private void showDialog() {
-		final int turn_id = game.turn;
-
-		final Stage bl = new Stage();
-		bl.setTitle("Buy Land");
-		bl.setResizable(false);
-		bl.setOnCloseRequest(event -> gameLoop.susp = false);
-
-		final Pane root = new Pane();
-		root.setPrefSize(450, 300);
-		bl.setScene(new Scene(root, 450, 300));
-
-		final Label lblNewLabel = new Label("Hi, " + game.p_name[turn_id] + ":");
-		lblNewLabel.setLayoutX(10);
-		lblNewLabel.setLayoutY(10);
-		root.getChildren().add(lblNewLabel);
-
-		final Button btnCancel = new Button("Cancel");
-		btnCancel.setLayoutX(55);
-		btnCancel.setLayoutY(214);
-		btnCancel.setOnAction(event -> {
-			bl.close();
-			gameLoop.susp = false;
-		});
-		root.getChildren().add(btnCancel);
-
-		final Button btnBuy = new Button("Buy Land");
-		btnBuy.setLayoutX(198);
-		btnBuy.setLayoutY(214);
-		btnBuy.setPrefWidth(188);
-		btnBuy.setOnAction(event -> {
-			game.deal((-1) * gameMap.value[game.p_dest_id[turn_id]], turn_id, "Buy Land: ");
-			gameMap.owner[game.p_dest_id[turn_id]] = turn_id + 1;
-			bl.close();
-			gameLoop.susp = false;
-		});
-		root.getChildren().add(btnBuy);
-
-		final Label question = new Label(
-			"Do you want to buy "
-				+ gameMap.name[game.p_dest_id[turn_id]]
-				+ " with $"
-				+ gameMap.value[game.p_dest_id[turn_id]]
-				+ "?"
-		);
-		question.setLayoutX(20);
-		question.setLayoutY(26);
-		root.getChildren().add(question);
-
-		if (gameMap.value[game.p_dest_id[turn_id]] > game.p_money[turn_id]) {
-			final Label error = new Label("You have NOT enough money!");
-			error.setLayoutX(20);
-			error.setLayoutY(189);
-			error.setTextFill(Color.RED);
-			root.getChildren().add(error);
-			btnBuy.setDisable(true);
-		}
-
-		bl.show();
-		bl.toFront();
-		bl.requestFocus();
-	}
+    private void showDialog() {
+        final int player=game.turn, tile=game.p_dest_id[player];
+        DealDialog.show(game,gameLoop,"購入土地",game.p_name[player]+"，要購入 "+gameMap.name[tile]+" 嗎？",
+            gameMap.value[tile],8,() -> {
+                game.deal(-gameMap.value[tile],player,"Buy Land: ");
+                gameMap.owner[tile]=player+1;
+            });
+    }
 }

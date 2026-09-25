@@ -90,7 +90,8 @@ public class Property {
 		this.tabbedPane = new TabPane();
 		this.stage = new Stage();
 		this.stage.setTitle("Property");
-		this.stage.setScene(new Scene(tabbedPane, 650, 300));
+		this.stage.setScene(Theme.scene(tabbedPane, 780, 420));
+		Theme.decorate(this.stage);
 	}
 
 	private PropertyRow toRow(final GameMap gameMap, final int i) {
@@ -165,6 +166,7 @@ public class Property {
 	private TableView<PropertyRow> createTable(final List<PropertyRow> rows) {
 		final ObservableList<PropertyRow> data = FXCollections.observableArrayList(rows);
 		final TableView<PropertyRow> table = new TableView<>(data);
+		table.getStyleClass().add("property-table");
 		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 		table.setEditable(false);
 		table.setFocusTraversable(false);

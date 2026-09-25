@@ -46,9 +46,26 @@ public class GameLoop implements Runnable {
 		mainMap.refresh();
 	}
 
+	/** Commit exactly one tile only after its jump and landing have completed. */
+	void advancePawn(final int player, final long now) {
+		PawnJump jump = mygame.pawnJumps.get(player);
+		if (jump == null) {
+			final int next = (mygame.p_id[player]+1)%gameMap.size;
+			jump = new PawnJump(next, mygame.p_x_now[player], mygame.p_y_now[player],
+				gameMap.pX[player][next], gameMap.pY[player][next], now);
+			mygame.pawnJumps.set(player, jump);
+		}
+		if (jump.finished(now)) {
+			mygame.p_x_now[player] = (int)jump.toX();
+			mygame.p_y_now[player] = (int)jump.toY();
+			mygame.p_id[player] = jump.targetTile();
+			mygame.updateSqMarkPosition(player);
+			mygame.pawnJumps.set(player, null);
+		}
+	}
+
 	@Override
 	public void run() {
-		int one_step;
 		int n;
 		int id;
 		long cash;
@@ -133,20 +150,7 @@ public class GameLoop implements Runnable {
 							no_cross_cash[i] = true;
 							mygame.deal(mygame.cross_cash, i, "Get: ");
 						}
-						if (mygame.p_x_now[i] == gameMap.pX[i][(mygame.p_id[i] + 1) % gameMap.size]
-								&& mygame.p_y_now[i] == gameMap.pY[i][(mygame.p_id[i] + 1) % gameMap.size]) {
-							mygame.p_id[i] = (mygame.p_id[i] + 1) % gameMap.size;
-						}
-						if (mygame.p_x_now[i] != gameMap.pX[i][(mygame.p_id[i] + 1) % gameMap.size]) {
-							one_step = (gameMap.pX[i][(mygame.p_id[i] + 1) % gameMap.size] > mygame.p_x_now[i]) ? 1 : -1;
-							mygame.p_x_now[i] = mygame.p_x_now[i] + one_step;
-							mygame.updateSqMarkPosition(i);
-						}
-						if (mygame.p_y_now[i] != gameMap.pY[i][(mygame.p_id[i] + 1) % gameMap.size]) {
-							one_step = (gameMap.pY[i][(mygame.p_id[i] + 1) % gameMap.size] > mygame.p_y_now[i]) ? 1 : -1;
-							mygame.p_y_now[i] = mygame.p_y_now[i] + one_step;
-							mygame.updateSqMarkPosition(i);
-						}
+						advancePawn(i, System.nanoTime());
 					}
 
 					if (i == mygame.turn

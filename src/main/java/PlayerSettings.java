@@ -1,262 +1,73 @@
-/*
- * Copyright (C) 2017 Simon <ficstudio@yahoo.com.tw>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-import javafx.collections.FXCollections;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
-import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
+/* Copyright (C) 2017 Simon <ficstudio@yahoo.com.tw>
+ * Licensed under GNU GPL v3 or later; see LICENSE. */
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
-
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class PlayerSettings {
+    private final int playerIdx;
+    public PlayerSettings(int playerIdx) { this.playerIdx=playerIdx; }
 
-	private static final int NUM_PLAYERS = 4;
-	// Remove one icon that duplicates Player1's default color family.
-	private static final int DUPLICATE_ICON_SOURCE_INDEX = 6;
+    public void show(Stage previousStage,Game game) {
+        Stage stage=new Stage();
+        stage.setTitle("玩家 "+(playerIdx+1)+" · 選擇角色");
+        Theme.decorate(stage);
+        Set<Integer> used=new HashSet<>();
+        for(int p=0;p<playerIdx;p++) used.add(game.p_icon[p]);
 
-	private final int playerNum;
-	private final int playerIdx;
+        TextField name=new TextField(game.p_name[playerIdx]==null?"Player"+(playerIdx+1):game.p_name[playerIdx]);
+        name.setPrefColumnCount(14);
+        CheckBox ai=new CheckBox("由電腦自動遊玩");
+        ai.setSelected(playerIdx!=0);
+        Spinner<Integer> money=new Spinner<>(0,Integer.MAX_VALUE,30000,100);
+        money.setEditable(true); money.setPrefWidth(180);
+        GridPane form=new GridPane(); form.setHgap(20); form.setVgap(16);
+        form.addRow(0,Theme.label("玩家名稱",""),name,ai);
+        form.addRow(1,Theme.label("起始資金",""),money,Theme.label("預設 $30,000","muted"));
 
-	private static final class IconChoice {
-		private final int sourceIndex;
-		private final Image icon;
-
-		private IconChoice(final int sourceIndex, final Image icon) {
-			this.sourceIndex = sourceIndex;
-			this.icon = icon;
-		}
-	}
-
-	public PlayerSettings(final int playerIdx) {
-		this.playerIdx = playerIdx;
-		this.playerNum = playerIdx + 1;
-	}
-
-	public void show(final Stage previousStage, final Game game) {
-		final boolean firstPlayer = (playerIdx == 0);
-		final boolean humanPlayer = firstPlayer;
-		final boolean lastPlayer = (playerIdx == (NUM_PLAYERS - 1));
-
-		final PlayerSettings nextSettings;
-		final MainMap mmap;
-		if (lastPlayer) {
-			nextSettings = null;
-			mmap = new MainMap(game);
-		} else {
-			nextSettings = new PlayerSettings(playerIdx + 1);
-			mmap = null;
-		}
-
-		final Image[] playerIcons = new Image[]{
-			game.image1,
-			game.image2,
-			game.image3,
-			game.image4,
-			game.image5,
-			game.image6,
-			game.image7,
-			game.image8
-		};
-		final Image[] playerFigures = new Image[]{
-			game.imagep1,
-			game.imagep2,
-			game.imagep3,
-			game.imagep4,
-			game.imagep5,
-			game.imagep6,
-			game.imagep7,
-			game.imagep8
-		};
-
-		final Set<Integer> usedIconIndices = new HashSet<>(playerIdx);
-		for (int i = 0; i < playerIdx; i++) {
-			usedIconIndices.add(game.p_icon[i]);
-		}
-
-		final List<IconChoice> filteredChoices = new ArrayList<>();
-		for (int i = 0; i < playerIcons.length; i++) {
-			if (i == DUPLICATE_ICON_SOURCE_INDEX) {
-				continue;
-			}
-			if (!usedIconIndices.contains(i)) {
-				filteredChoices.add(new IconChoice(i, playerIcons[i]));
-			}
-		}
-
-		final Stage playerSettingsStage = new Stage();
-		playerSettingsStage.setTitle("Player" + playerNum + " Setting");
-		playerSettingsStage.setResizable(false);
-		playerSettingsStage.setOnCloseRequest(event -> event.consume());
-		if (previousStage != null) {
-			previousStage.hide();
-		}
-
-		final Pane root = new Pane();
-		final Scene scene = new Scene(root, 450, 320);
-		playerSettingsStage.setScene(scene);
-
-		final Label lblName = new Label("Name");
-		lblName.setLayoutX(122);
-		lblName.setLayoutY(40);
-		root.getChildren().add(lblName);
-
-		final TextField name = new TextField("Player" + playerNum);
-		name.setLayoutX(205);
-		name.setLayoutY(34);
-		name.setPrefWidth(106);
-		root.getChildren().add(name);
-
-		final Label lblAi = new Label("AI");
-		lblAi.setLayoutX(122);
-		lblAi.setLayoutY(79);
-		root.getChildren().add(lblAi);
-
-		final CheckBox ai = new CheckBox();
-		ai.setSelected(!humanPlayer);
-		ai.setLayoutX(205);
-		ai.setLayoutY(76);
-		root.getChildren().add(ai);
-
-		final Label lblIcon = new Label("Icon");
-		lblIcon.setLayoutX(122);
-		lblIcon.setLayoutY(124);
-		root.getChildren().add(lblIcon);
-
-		final ComboBox<IconChoice> icon = new ComboBox<>();
-		icon.setItems(FXCollections.observableArrayList(filteredChoices));
-		icon.setLayoutX(205);
-		icon.setLayoutY(118);
-		icon.setPrefWidth(106);
-
-		icon.setCellFactory(param -> new ListCell<IconChoice>() {
-			private final ImageView imageView = new ImageView();
-
-			@Override
-			protected void updateItem(final IconChoice item, final boolean empty) {
-				super.updateItem(item, empty);
-				if (empty || item == null) {
-					setGraphic(null);
-				} else {
-					imageView.setImage(item.icon);
-					imageView.setPreserveRatio(true);
-					imageView.setFitHeight(18);
-					setGraphic(imageView);
-				}
-			}
-		});
-		icon.setButtonCell(new ListCell<IconChoice>() {
-			private final ImageView imageView = new ImageView();
-
-			@Override
-			protected void updateItem(final IconChoice item, final boolean empty) {
-				super.updateItem(item, empty);
-				if (empty || item == null) {
-					setGraphic(null);
-				} else {
-					imageView.setImage(item.icon);
-					imageView.setPreserveRatio(true);
-					imageView.setFitHeight(18);
-					setGraphic(imageView);
-				}
-			}
-		});
-		icon.getSelectionModel().selectFirst();
-		root.getChildren().add(icon);
-
-		final Label lblStartingMoney = new Label("Starting money");
-		lblStartingMoney.setLayoutX(122);
-		lblStartingMoney.setLayoutY(165);
-		root.getChildren().add(lblStartingMoney);
-
-		final Spinner<Integer> startingMoney = new Spinner<>();
-		startingMoney.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, Integer.MAX_VALUE, 30000, 100));
-		startingMoney.setEditable(true);
-		startingMoney.setLayoutX(205);
-		startingMoney.setLayoutY(159);
-		startingMoney.setPrefWidth(106);
-		root.getChildren().add(startingMoney);
-
-		final Label lblErrorValue = new Label("(error value)");
-		lblErrorValue.setTextFill(Color.RED);
-		lblErrorValue.setLayoutX(321);
-		lblErrorValue.setLayoutY(40);
-		lblErrorValue.setVisible(false);
-		root.getChildren().add(lblErrorValue);
-
-		final Button btnCancel = new Button("Previous");
-		btnCancel.setLayoutX(85);
-		btnCancel.setLayoutY(214);
-		btnCancel.setPrefWidth(155);
-		btnCancel.setOnAction(event -> {
-			playerSettingsStage.close();
-			if (previousStage != null) {
-				previousStage.show();
-				previousStage.toFront();
-			}
-		});
-		root.getChildren().add(btnCancel);
-
-		final Button btnNext = new Button(lastPlayer ? "Finish" : "Next");
-		btnNext.setLayoutX(250);
-		btnNext.setLayoutY(214);
-		btnNext.setPrefWidth(94);
-		btnNext.setOnAction(event -> {
-			final String playerName = name.getText();
-			if (playerName == null || playerName.trim().isEmpty()) {
-				lblErrorValue.setVisible(true);
-				return;
-			}
-			lblErrorValue.setVisible(false);
-
-			final IconChoice selected = icon.getSelectionModel().getSelectedItem();
-			if (selected == null) {
-				lblErrorValue.setVisible(true);
-				return;
-			}
-
-			game.p_name[playerIdx] = playerName.trim();
-			game.p_money[playerIdx] = startingMoney.getValue();
-			game.p_type[playerIdx] = ai.isSelected() ? 1 : 0;
-			game.p_icon[playerIdx] = selected.sourceIndex;
-			game.p_ic[playerIdx] = playerIcons[selected.sourceIndex];
-			game.p_pawn[playerIdx] = playerFigures[selected.sourceIndex];
-
-			playerSettingsStage.hide();
-			if (lastPlayer) {
-				mmap.generate_map(game);
-			} else {
-				nextSettings.show(playerSettingsStage, game);
-			}
-		});
-		root.getChildren().add(btnNext);
-
-		playerSettingsStage.show();
-	}
+        ToggleGroup choices=new ToggleGroup();
+        TilePane roster=new TilePane(12,12); roster.setPrefColumns(4);
+        roster.setPrefTileWidth(176); roster.setPrefTileHeight(142);
+        for(int i=0;i<8;i++) {
+            VBox graphic=new VBox(4,Art.view(Art.sprite(i),92,92),Theme.label(Art.NAMES[i],""));
+            graphic.setAlignment(Pos.CENTER);
+            ToggleButton choice=new ToggleButton(); choice.setGraphic(graphic);
+            choice.setPrefSize(176,142); choice.setToggleGroup(choices); choice.setUserData(i);
+            choice.setDisable(used.contains(i));
+            choice.setAccessibleText(Art.NAMES[i]);
+            roster.getChildren().add(choice);
+            if(!choice.isDisabled() && choices.getSelectedToggle()==null) choice.setSelected(true);
+        }
+        Label error=Theme.label("","error"); error.setMinHeight(22);
+        Button back=Theme.button("← 上一步",false),next=Theme.button(playerIdx==3?"開始冒險 →":"下一位玩家 →",true);
+        back.setOnAction(e -> { stage.close(); if(previousStage!=null) previousStage.show(); });
+        next.setOnAction(e -> {
+            if(name.getText()==null || name.getText().trim().isEmpty()) { error.setText("請輸入玩家名稱。"); return; }
+            int startingMoney;
+            try { startingMoney=Integer.parseInt(money.getEditor().getText().trim()); }
+            catch(NumberFormatException ex) { error.setText("起始資金必須是 0 到 2,147,483,647 的整數。"); return; }
+            if(startingMoney<0) { error.setText("起始資金不能小於 0。"); return; }
+            if(choices.getSelectedToggle()==null) { error.setText("請選擇一位角色。"); return; }
+            int selected=(Integer)choices.getSelectedToggle().getUserData();
+            game.p_name[playerIdx]=name.getText().trim(); game.p_money[playerIdx]=startingMoney;
+            game.p_type[playerIdx]=ai.isSelected()?1:0; game.p_icon[playerIdx]=selected;
+            game.p_ic[playerIdx]=Art.sprite(selected); game.p_pawn[playerIdx]=Art.sprite(selected);
+            stage.hide();
+            if(playerIdx==3) new MainMap(game).generate_map(game);
+            else new PlayerSettings(playerIdx+1).show(stage,game);
+        });
+        Region spacer=new Region(); HBox.setHgrow(spacer,Priority.ALWAYS);
+        HBox actions=new HBox(16,back,spacer,next); actions.setAlignment(Pos.CENTER);
+        VBox root=new VBox(16,Theme.label("NEW JOURNEY  /  "+(playerIdx+1)+" OF 4","eyebrow"),
+            Theme.label("選擇你的幸運夥伴","heading"),form,roster,error,actions);
+        root.setPadding(new Insets(28));
+        stage.setScene(Theme.scene(root,796,630)); stage.setResizable(false);
+        stage.setOnCloseRequest(e -> { if(previousStage!=null) previousStage.show(); });
+        if(previousStage!=null) previousStage.hide();
+        stage.show(); Theme.reveal(root);
+    }
 }
